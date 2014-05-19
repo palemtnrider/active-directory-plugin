@@ -46,6 +46,8 @@ public class ActiveDirectoryUnixAuthenticationProvider extends AbstractActiveDir
 
     private final String site;
 
+    private final boolean retrieveGroups;
+
     /**
      * The LDAP server that we should talk to first, regardless of the LDAP server discovery result.
      * Conceptually there should be one per domain, but for historical reason we only support one here.
@@ -122,6 +124,7 @@ public class ActiveDirectoryUnixAuthenticationProvider extends AbstractActiveDir
         this.server = realm.server;
         this.bindPassword = Secret.toString(realm.bindPassword);
         this.descriptor = realm.getDescriptor();
+        this.retrieveGroups = realm.retrieveGroups;
     }
 
     protected UserDetails retrieveUser(String username, UsernamePasswordAuthenticationToken authentication) throws AuthenticationException {
@@ -369,6 +372,10 @@ public class ActiveDirectoryUnixAuthenticationProvider extends AbstractActiveDir
      * @param context Used for making queries.
      */
     private Set<GrantedAuthority> resolveGroups(String domainDN, String userDN, DirContext context) throws NamingException {
+        if (!retrieveGroups) {
+            LOGGER.warning("Not retrieveing user groups");
+            return new HashSet<GrantedAuthority>();
+        }
         LOGGER.finer("Looking up group of "+userDN);
         Attributes id = context.getAttributes(userDN,new String[]{"tokenGroups","memberOf","CN"});
         Attribute tga = id.get("tokenGroups");

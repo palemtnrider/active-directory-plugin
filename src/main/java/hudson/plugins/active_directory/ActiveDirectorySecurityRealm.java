@@ -100,6 +100,10 @@ public class ActiveDirectorySecurityRealm extends AbstractPasswordBasedSecurityR
     public final String bindName;
 
     public final Secret bindPassword;
+    /**
+    * Should we retrieve groups during authentication
+    */
+    public final boolean retrieveGroups;
 
     /**
      * If non-null, Jenkins will try to connect at this server at the first priority, before falling back to
@@ -108,11 +112,14 @@ public class ActiveDirectorySecurityRealm extends AbstractPasswordBasedSecurityR
     public final String server;
 
     @DataBoundConstructor
-    public ActiveDirectorySecurityRealm(String domain, String site, String bindName, String bindPassword, String server) {
+    public ActiveDirectorySecurityRealm(String domain, String site, String bindName, String bindPassword, String server, boolean retrieveGroups) {
         this.domain = fixEmpty(domain);
         this.site = fixEmpty(site);
         this.bindName = fixEmpty(bindName);
         this.bindPassword = Secret.fromString(fixEmpty(bindPassword));
+        this.retrieveGroups = retrieveGroups;    
+        
+        
 
         // append default port if not specified
         server = fixEmpty(server);
@@ -158,7 +165,7 @@ public class ActiveDirectorySecurityRealm extends AbstractPasswordBasedSecurityR
     /**
      * Authentication test.
      */
-    public void doAuthTest(StaplerRequest req, StaplerResponse rsp, @QueryParameter String username, @QueryParameter String password) throws IOException, ServletException {
+    public void doAuthTest(StaplerRequest req, StaplerResponse rsp, @QueryParameter String username, @QueryParameter String password, @QueryParameter boolean retrieveGroups) throws IOException, ServletException {
         // require the administrator permission since this is full of debug info.
         Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
 
@@ -240,7 +247,7 @@ public class ActiveDirectorySecurityRealm extends AbstractPasswordBasedSecurityR
         private static boolean WARNED = false;
 
         public FormValidation doValidate(@QueryParameter(fixEmpty = true) String domain, @QueryParameter(fixEmpty = true) String site, @QueryParameter(fixEmpty = true) String bindName,
-                @QueryParameter(fixEmpty = true) String bindPassword, @QueryParameter(fixEmpty = true) String server) throws IOException, ServletException, NamingException {
+                @QueryParameter(fixEmpty = true) String bindPassword, @QueryParameter(fixEmpty = true) String server, @QueryParameter() boolean retrieveGroups) throws IOException, ServletException, NamingException {
             ClassLoader ccl = Thread.currentThread().getContextClassLoader();
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
             try {
